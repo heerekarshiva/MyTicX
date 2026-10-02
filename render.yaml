@@ -1,0 +1,41 @@
+# Render Blueprint. Set the secret values in the Render dashboard (marked sync: false).
+# IMPORTANT: CRON_SECRET and NEXT_PUBLIC_APP_URL must be set to the SAME values on BOTH the web service and the
+# ticx-sync-events cron job, otherwise the cron gets 401 and expired reservations are never released.
+services:
+  - type: web
+    name: ticx
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - { key: NODE_VERSION, value: 20 }
+      - { key: APP_ENV, value: production }
+      - { key: NEXT_PUBLIC_APP_URL, sync: false }
+      - { key: NEXT_PUBLIC_SUPABASE_URL, sync: false }
+      - { key: NEXT_PUBLIC_SUPABASE_ANON_KEY, sync: false }
+      - { key: SUPABASE_SERVICE_ROLE_KEY, sync: false }
+      - { key: CRON_SECRET, sync: false }
+      - { key: PAYMENT_PROVIDER, value: phonepe }
+      - { key: PHONEPE_ENV, value: production }
+      - { key: PHONEPE_CLIENT_ID, sync: false }
+      - { key: PHONEPE_CLIENT_SECRET, sync: false }
+      - { key: PHONEPE_CLIENT_VERSION, sync: false }
+      - { key: PHONEPE_WEBHOOK_USERNAME, sync: false }
+      - { key: PHONEPE_WEBHOOK_PASSWORD, sync: false }
+      - { key: NEXT_PUBLIC_SUPPORT_EMAIL, sync: false }
+      - { key: GOOGLE_SITE_VERIFICATION, sync: false }
+      - { key: CSP_ENFORCE, value: "false" }
+      - { key: OMDB_API_KEY, sync: false }
+      - { key: TMDB_API_KEY, sync: false }
+  - type: cron
+    name: ticx-sync-events
+    runtime: node
+    schedule: "* * * * *"
+    buildCommand: "true"
+    startCommand: 'curl -fsS -H "Authorization: Bearer $CRON_SECRET" "$NEXT_PUBLIC_APP_URL/api/cron/sync-events"'
+    envVars:
+      - { key: CRON_SECRET, sync: false }
+      - { key: NEXT_PUBLIC_APP_URL, sync: false }
